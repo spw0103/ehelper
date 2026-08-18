@@ -352,19 +352,34 @@ async function scanEmails() {
       });
     }
 
-    // 5. 去重合并
-    const existing = getRecords();
-    const existingIds = new Set(existing.map(r => r.id));
-    const fresh = newRecords.filter(r => !existingIds.has(r.id));
-    const merged = fresh.concat(existing);
-    setRecords(merged);
+        // 5. 合并：新记录追加，已存在记录刷新金额/关键词
+        const existing = getRecords();
+        const existingMap = new Map(existing.map(r => [r.id, r]));
+        let freshCount = 0;
+        let updatedCount = 0;
+        newRecords.forEach(nr => {
+          const old = existingMap.get(nr.id);
+          if (old) {
+            old.amount = nr.amount;
+            old.keywords = nr.keywords;
+            old.date = nr.date;
+            old.ts = nr.ts;
+            old.scannedAt = Date.now();
+            updatedCount++;
+          } else {
+            existingMap.set(nr.id, nr);
+            freshCount++;
+          }
+        });
+        const merged = Array.from(existingMap.values());
+        setRecords(merged);
 
-    renderRecords();
-    status.textContent = '';
-    $('last-scan').textContent = '上次扫描：' + new Date().toLocaleString('zh-CN') +
-      (q ? `（筛选：${q}）` : '') +
-      `（共扫描 ${messages.length} 封，新匹配 ${fresh.length} 条）`;
-    toast(fresh.length ? `扫描完成，新增 ${fresh.length} 条记录` : '扫描完成，无新增匹配', fresh.length ? 'success' : '');
+        renderRecords();
+        status.textContent = '';
+        $('last-scan').textContent = '上次扫描：' + new Date().toLocaleString('zh-CN') +
+          (q ? `（筛选：${q}）` : '') +
+          `（共扫描 ${messages.length} 封，新匹配 ${freshCount} 条，更新 ${updatedCount} 条）`;
+        toast(`扫描完成：新增 ${freshCount} 条，更新 ${updatedCount} 条`, (freshCount || updatedCount) ? 'success' : '');
   } catch (err) {
     console.error(err);
     if (err.needsReauth) {
