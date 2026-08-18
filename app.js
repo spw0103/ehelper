@@ -223,6 +223,24 @@ class ApiError extends Error {
   constructor(msg, needsReauth) { super(msg); this.needsReauth = needsReauth; }
 }
 
+async function fetchMessageList(q, count) {
+  const messages = [];
+  let pageToken = '';
+  do {
+    let url = 'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100';
+    if (q) url += '&q=' + encodeURIComponent(q);
+    if (pageToken) url += '&pageToken=' + encodeURIComponent(pageToken);
+    const data = await apiFetch(url);
+    if (data.messages) messages.push(...data.messages);
+    pageToken = data.nextPageToken || '';
+    if (count !== 'all' && messages.length >= count) {
+      messages.length = count;
+      break;
+    }
+  } while (pageToken);
+  return messages;
+}
+
 async function scanEmails() {
   const btn = $('scan-btn');
   const progress = $('scan-progress');
@@ -234,18 +252,34 @@ async function scanEmails() {
   const keywords = getKeywords();
   if (!keywords.length) { toast('请先添加至少一个关键词', 'error'); return; }
 
+  const from = $('scan-from').value.trim();
+  const exclFrom = $('scan-exclude-from').value.trim();
+  const qParts = [];
+  if (from) qParts.push('from:' + from);
+  if (exclFrom) {
+    exclFrom.split(/[,，\s]+/).filter(Boolean).forEach(a => qParts.push('-from:' + a));
+  }
+  if ($('excl-promo').checked) qParts.push('-category:promotions');
+  if ($('excl-social').checked) qParts.push('-category:social');
+  if ($('excl-forums').checked) qParts.push('-category:forums');
+  if ($('excl-updates').checked) qParts.push('-category:updates');
+  const q = qParts.join(' ');
+  const count = $('scan-count').value;
+
+  if (count === 'all' && !confirm('扫描全部邮件可能非常耗时（可能是数千封），确定继续吗？')) return;
+
   btn.disabled = true;
   progress.style.display = 'block';
   bar.style.width = '0%';
   status.textContent = '正在获取邮件列表…';
 
   try {
-    // 1. 获取最近 20 封邮件
-    const list = await apiFetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20');
-    const messages = list.messages || [];
+    // 1. 按筛选条件获取邮件（支持分页，最多 count 封，全部则翻到底）
+    const messages = await fetchMessageList(q, count);
     if (!messages.length) {
-      status.textContent = '收件箱为空';
-      $('last-scan').textContent = '上次扫描：' + new Date().toLocaleString('zh-CN') + '（收件箱无邮件）';
+      status.textContent = '筛选条件下无邮件';
+      $('last-scan').textContent = '上次扫描：' + new Date().toLocaleString('zh-CN') +
+        (q ? `（筛选：${q}）` : '') + '（无匹配邮件）';
       return;
     }
 
@@ -313,6 +347,7 @@ async function scanEmails() {
     renderRecords();
     status.textContent = '';
     $('last-scan').textContent = '上次扫描：' + new Date().toLocaleString('zh-CN') +
+      (q ? `（筛选：${q}）` : '') +
       `（共扫描 ${messages.length} 封，新匹配 ${fresh.length} 条）`;
     toast(fresh.length ? `扫描完成，新增 ${fresh.length} 条记录` : '扫描完成，无新增匹配', fresh.length ? 'success' : '');
   } catch (err) {

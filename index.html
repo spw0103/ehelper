@@ -62,6 +62,40 @@
         <!-- 扫描 -->
         <div class="card">
           <h3><span class="material-icons">search</span> 扫描邮件</h3>
+          <div class="scan-filters">
+            <div class="filter-row">
+              <div class="filter-field">
+                <label for="scan-from">发件人筛选（只扫描该发件人，留空为全部）</label>
+                <input type="text" id="scan-from" placeholder="例如 alerts@bank.com 或 @bank.com" autocomplete="off">
+              </div>
+              <div class="filter-field">
+                <label for="scan-exclude-from">排除发件人（多个用逗号分隔）</label>
+                <input type="text" id="scan-exclude-from" placeholder="例如 ads@shop.com, noreply@xxx.com" autocomplete="off">
+              </div>
+            </div>
+            <div class="filter-row">
+              <div class="filter-field">
+                <label for="scan-count">扫描数量</label>
+                <select id="scan-count">
+                  <option value="20" selected>最近 20 封</option>
+                  <option value="50">最近 50 封</option>
+                  <option value="100">最近 100 封</option>
+                  <option value="200">最近 200 封</option>
+                  <option value="500">最近 500 封</option>
+                  <option value="all">全部邮件</option>
+                </select>
+              </div>
+              <div class="filter-field">
+                <label>排除无用类别</label>
+                <div class="check-row">
+                  <label class="check-item"><input type="checkbox" id="excl-promo"> 促销</label>
+                  <label class="check-item"><input type="checkbox" id="excl-social"> 社交</label>
+                  <label class="check-item"><input type="checkbox" id="excl-forums"> 论坛</label>
+                  <label class="check-item"><input type="checkbox" id="excl-updates"> 通知</label>
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="scan-bar">
             <button class="btn btn-primary" id="scan-btn">
               <span class="material-icons">play_arrow</span> 立即扫描
