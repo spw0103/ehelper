@@ -75,6 +75,16 @@
             </div>
             <div class="filter-row">
               <div class="filter-field">
+                <label for="amount-symbol">提取金额的货币符号</label>
+                <input type="text" id="amount-symbol" value="HK$" placeholder="例如 HK$、¥、$、USD" autocomplete="off">
+              </div>
+              <div class="filter-field">
+                <label>&nbsp;</label>
+                <div class="field-hint">扫描时检测该符号后面的数字并提取；未找到该符号时，回退到「金额/还款/消费」等关键词后的数字。</div>
+              </div>
+            </div>
+            <div class="filter-row">
+              <div class="filter-field">
                 <label for="scan-count">扫描数量</label>
                 <select id="scan-count">
                   <option value="20" selected>最近 20 封</option>

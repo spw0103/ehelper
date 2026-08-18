@@ -181,12 +181,25 @@ function htmlToText(html) {
 
 // ---------- 金额提取 ----------
 const AMOUNT_PATTERNS = [
-  /(?:金额|金額|还款|還款|还款金额|还贷|消費|消费|应付|應付|支付|账单|帳單)[：:]\s*[¥￥]?\s*([\d][\d,]*\.?\d*)/g,
-  /[¥￥]\s*([\d][\d,]*\.?\d*)/g,
+  /(?:金额|金額|还款|還款|还款金额|还贷|消費|消费|应付|應付|支付|账单|帳單)[：:]\s*[¥$￥]?\s*([\d][\d,]*\.?\d*)/g,
+  /[¥$￥]\s*([\d][\d,]*\.?\d*)/g,
   /(?:due|amount|total|balance)[：: ]\s*[¥$￥]?\s*([\d][\d,]*\.?\d*)/gi
 ];
 
-function extractAmounts(text) {
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function extractAmounts(text, symbol) {
+  // 优先提取用户指定符号（如 HK$）后的数字
+  if (symbol) {
+    const symRe = new RegExp(escapeRegex(symbol) + '\\s*([\\d][\\d,]*\\.?\\d*)', 'g');
+    const symAmounts = [];
+    let m;
+    while ((m = symRe.exec(text)) !== null) symAmounts.push(m[1]);
+    if (symAmounts.length) return symAmounts;
+  }
+  // 回退：中英文关键词模式
   const amounts = [];
   const seen = new Set();
   const push = (v) => {
@@ -268,6 +281,8 @@ async function scanEmails() {
 
   if (count === 'all' && !confirm('扫描全部邮件可能非常耗时（可能是数千封），确定继续吗？')) return;
 
+  const symbol = $('amount-symbol').value.trim();
+
   btn.disabled = true;
   progress.style.display = 'block';
   bar.style.width = '0%';
@@ -312,8 +327,8 @@ async function scanEmails() {
 
       if (!matched.length) continue;
 
-      // 4. 提取金额
-      const amounts = extractAmounts(originalContent);
+          // 4. 提取金额
+          const amounts = extractAmounts(originalContent, symbol);
       let displayAmount = '';
       if (amounts.length) {
         let best = amounts[0];
